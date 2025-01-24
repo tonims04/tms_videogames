@@ -5,7 +5,7 @@
 -- Dumped from database version 17.0
 -- Dumped by pg_dump version 17.0
 
--- Started on 2025-01-24 19:03:24
+-- Started on 2025-01-24 20:06:34
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,16 +18,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- TOC entry 7 (class 2615 OID 16846)
--- Name: test; Type: SCHEMA; Schema: -; Owner: user_all
---
-
-CREATE SCHEMA test;
-
-
-ALTER SCHEMA test OWNER TO user_all;
 
 --
 -- TOC entry 6 (class 2615 OID 16744)
@@ -151,214 +141,6 @@ CREATE TABLE videogames.region_sales (
 
 
 ALTER TABLE videogames.region_sales OWNER TO postgres;
-
---
--- TOC entry 244 (class 1259 OID 16932)
--- Name: games_launched_in_europe; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.games_launched_in_europe AS
- SELECT game.game_name,
-    publisher.publisher_name,
-    game_platform.release_year,
-    genre.genre_name,
-    string_agg((platform.platform_name)::text, ', '::text) AS platforms,
-    sum(region_sales.num_sales) AS total_sales
-   FROM (((((((videogames.region
-     JOIN videogames.region_sales ON ((region.id = region_sales.region_id)))
-     JOIN videogames.game_platform ON ((game_platform.id = region_sales.game_platform_id)))
-     JOIN videogames.game_publisher ON ((game_publisher.id = game_platform.game_publisher_id)))
-     JOIN videogames.platform ON ((platform.id = game_platform.platform_id)))
-     JOIN videogames.game ON ((game.id = game_publisher.game_id)))
-     JOIN videogames.publisher ON ((publisher.id = game_publisher.publisher_id)))
-     JOIN videogames.genre ON ((genre.id = game.genre_id)))
-  WHERE ((region.region_name)::text = 'Europe'::text)
-  GROUP BY game.game_name, publisher.publisher_name, game_platform.release_year, genre.genre_name
-  ORDER BY game_platform.release_year DESC, (sum(region_sales.num_sales)) DESC;
-
-
-ALTER VIEW public.games_launched_in_europe OWNER TO postgres;
-
---
--- TOC entry 245 (class 1259 OID 16937)
--- Name: games_per_genre; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.games_per_genre AS
- SELECT genre.genre_name,
-    count(DISTINCT game.id) AS total_games,
-    count(DISTINCT platform.platform_name) AS total_platforms,
-    sum(region_sales.num_sales) AS total_sales
-   FROM (((((videogames.genre
-     JOIN videogames.game ON ((game.genre_id = genre.id)))
-     JOIN videogames.game_publisher ON ((game_publisher.game_id = game.id)))
-     JOIN videogames.game_platform ON ((game_publisher.id = game_platform.game_publisher_id)))
-     JOIN videogames.region_sales ON ((region_sales.game_platform_id = game_platform.id)))
-     JOIN videogames.platform ON ((game_platform.platform_id = platform.id)))
-  GROUP BY genre.genre_name
-  ORDER BY genre.genre_name, (count(DISTINCT game.id)) DESC;
-
-
-ALTER VIEW public.games_per_genre OWNER TO postgres;
-
---
--- TOC entry 243 (class 1259 OID 16927)
--- Name: jeux_avec_souls_dans_le_nom_ordonnes_par_annee_desc; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.jeux_avec_souls_dans_le_nom_ordonnes_par_annee_desc AS
- SELECT game.game_name AS nom_du_jeu,
-    game_platform.release_year AS annee_de_sortie,
-    platform.platform_name AS plateforme
-   FROM (((videogames.game
-     JOIN videogames.game_publisher ON ((game_publisher.game_id = game.id)))
-     JOIN videogames.game_platform ON ((game_platform.game_publisher_id = game_publisher.id)))
-     JOIN videogames.platform ON ((platform.id = game_platform.platform_id)))
-  WHERE ((game.game_name)::text ~~* '%souls%'::text)
-  ORDER BY game_platform.release_year DESC;
-
-
-ALTER VIEW public.jeux_avec_souls_dans_le_nom_ordonnes_par_annee_desc OWNER TO postgres;
-
---
--- TOC entry 235 (class 1259 OID 16888)
--- Name: nintendo_games_genre_platform_asc; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.nintendo_games_genre_platform_asc AS
- SELECT game.game_name
-   FROM (((videogames.publisher
-     JOIN videogames.game_publisher ON ((game_publisher.publisher_id = publisher.id)))
-     JOIN videogames.game ON ((game_publisher.game_id = game.id)))
-     JOIN videogames.genre ON ((game.genre_id = genre.id)))
-  WHERE (((publisher.publisher_name)::text = 'Nintendo'::text) AND ((genre.genre_name)::text = 'Platform'::text))
-  ORDER BY game.game_name;
-
-
-ALTER VIEW public.nintendo_games_genre_platform_asc OWNER TO postgres;
-
---
--- TOC entry 238 (class 1259 OID 16902)
--- Name: regions_with_less_sales_of_xone; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.regions_with_less_sales_of_xone AS
- SELECT region.region_name,
-    sum(region_sales.num_sales) AS total_sales
-   FROM (((videogames.region
-     JOIN videogames.region_sales ON ((region_sales.region_id = region.id)))
-     JOIN videogames.game_platform ON ((game_platform.id = region_sales.game_platform_id)))
-     JOIN videogames.platform ON ((game_platform.platform_id = platform.id)))
-  WHERE ((platform.platform_name)::text = 'XOne'::text)
-  GROUP BY region.region_name
-  ORDER BY (sum(region_sales.num_sales))
- LIMIT 5;
-
-
-ALTER VIEW public.regions_with_less_sales_of_xone OWNER TO postgres;
-
---
--- TOC entry 240 (class 1259 OID 16912)
--- Name: sales_comparation_between_ps3_and_x360; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.sales_comparation_between_ps3_and_x360 AS
- SELECT platform.platform_name,
-    sum(region_sales.num_sales) AS total_sales
-   FROM ((((videogames.region_sales
-     JOIN videogames.game_platform ON ((region_sales.game_platform_id = game_platform.id)))
-     JOIN videogames.platform ON ((game_platform.platform_id = platform.id)))
-     JOIN videogames.game_publisher ON ((game_publisher.id = game_platform.game_publisher_id)))
-     JOIN videogames.game ON ((game_publisher.game_id = game.id)))
-  WHERE (((platform.platform_name)::text = ANY ((ARRAY['PS3'::character varying, 'X360'::character varying])::text[])) AND ((game.game_name)::text = 'Call of Duty: Black Ops II'::text))
-  GROUP BY platform.platform_name
-  ORDER BY (sum(region_sales.num_sales)) DESC;
-
-
-ALTER VIEW public.sales_comparation_between_ps3_and_x360 OWNER TO postgres;
-
---
--- TOC entry 241 (class 1259 OID 16917)
--- Name: sales_of_atlus_order_by_year_desc; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.sales_of_atlus_order_by_year_desc AS
- SELECT game.game_name,
-    sum(region_sales.num_sales) AS total_sales,
-    game_platform.release_year
-   FROM ((((videogames.game
-     JOIN videogames.game_publisher ON ((game_publisher.game_id = game.id)))
-     JOIN videogames.game_platform ON ((game_platform.game_publisher_id = game_publisher.id)))
-     JOIN videogames.publisher ON ((game_publisher.publisher_id = publisher.id)))
-     JOIN videogames.region_sales ON ((game_platform.id = region_sales.game_platform_id)))
-  WHERE ((publisher.publisher_name)::text = 'Atlus'::text)
-  GROUP BY game.game_name, game_platform.release_year
-  ORDER BY game_platform.release_year DESC;
-
-
-ALTER VIEW public.sales_of_atlus_order_by_year_desc OWNER TO postgres;
-
---
--- TOC entry 234 (class 1259 OID 16883)
--- Name: top_10_game_sales; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.top_10_game_sales AS
- SELECT game.game_name,
-    platform.platform_name,
-    region.region_name,
-    game_sales.num_sales
-   FROM (((((videogames.game game
-     JOIN videogames.game_publisher game_publisher ON ((game_publisher.game_id = game.id)))
-     JOIN videogames.game_platform game_platform ON ((game_platform.game_publisher_id = game_publisher.id)))
-     JOIN videogames.platform platform ON ((platform.id = game_platform.platform_id)))
-     JOIN videogames.region_sales game_sales ON ((game_sales.game_platform_id = game_platform.id)))
-     JOIN videogames.region region ON ((region.id = game_sales.region_id)))
-  ORDER BY game_sales.num_sales DESC
- LIMIT 10;
-
-
-ALTER VIEW public.top_10_game_sales OWNER TO postgres;
-
---
--- TOC entry 236 (class 1259 OID 16892)
--- Name: top_15_sales_ps3_desc; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.top_15_sales_ps3_desc AS
- SELECT game.game_name,
-    region_sales.num_sales
-   FROM ((((videogames.platform
-     JOIN videogames.game_platform ON ((game_platform.platform_id = platform.id)))
-     JOIN videogames.game_publisher ON ((game_platform.game_publisher_id = game_publisher.publisher_id)))
-     JOIN videogames.game ON ((game.id = game_publisher.game_id)))
-     JOIN videogames.region_sales ON ((region_sales.game_platform_id = game_platform.id)))
-  WHERE ((platform.platform_name)::text = 'PS3'::text)
-  ORDER BY region_sales.num_sales DESC
- LIMIT 15;
-
-
-ALTER VIEW public.top_15_sales_ps3_desc OWNER TO postgres;
-
---
--- TOC entry 242 (class 1259 OID 16922)
--- Name: tw3_wh_sales_by_region_platform; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.tw3_wh_sales_by_region_platform AS
- SELECT region.region_name,
-    platform.platform_name,
-    region_sales.num_sales
-   FROM (((((videogames.game
-     JOIN videogames.game_publisher ON ((game.id = game_publisher.game_id)))
-     JOIN videogames.game_platform ON ((game_platform.game_publisher_id = game_publisher.id)))
-     JOIN videogames.platform ON ((platform.id = game_platform.platform_id)))
-     JOIN videogames.region_sales ON ((region_sales.game_platform_id = game_platform.id)))
-     JOIN videogames.region ON ((region.id = region_sales.region_id)))
-  WHERE ((game.game_name)::text = 'The Witcher 3: Wild Hunt'::text);
-
-
-ALTER VIEW public.tw3_wh_sales_by_region_platform OWNER TO postgres;
 
 --
 -- TOC entry 239 (class 1259 OID 16907)
@@ -506,7 +288,7 @@ ALTER TABLE videogames.region ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTI
 
 
 --
--- TOC entry 4918 (class 0 OID 16774)
+-- TOC entry 4908 (class 0 OID 16774)
 -- Dependencies: 228
 -- Data for Name: game; Type: TABLE DATA; Schema: videogames; Owner: postgres
 --
@@ -11876,7 +11658,7 @@ COPY videogames.game (id, genre_id, game_name) FROM stdin;
 
 
 --
--- TOC entry 4922 (class 0 OID 16802)
+-- TOC entry 4912 (class 0 OID 16802)
 -- Dependencies: 232
 -- Data for Name: game_platform; Type: TABLE DATA; Schema: videogames; Owner: postgres
 --
@@ -28212,7 +27994,7 @@ COPY videogames.game_platform (id, game_publisher_id, platform_id, release_year)
 
 
 --
--- TOC entry 4920 (class 0 OID 16786)
+-- TOC entry 4910 (class 0 OID 16786)
 -- Dependencies: 230
 -- Data for Name: game_publisher; Type: TABLE DATA; Schema: videogames; Owner: postgres
 --
@@ -39954,7 +39736,7 @@ COPY videogames.game_publisher (id, game_id, publisher_id) FROM stdin;
 
 
 --
--- TOC entry 4910 (class 0 OID 16746)
+-- TOC entry 4900 (class 0 OID 16746)
 -- Dependencies: 220
 -- Data for Name: genre; Type: TABLE DATA; Schema: videogames; Owner: postgres
 --
@@ -39977,7 +39759,7 @@ COPY videogames.genre (id, genre_name) FROM stdin;
 
 
 --
--- TOC entry 4916 (class 0 OID 16767)
+-- TOC entry 4906 (class 0 OID 16767)
 -- Dependencies: 226
 -- Data for Name: platform; Type: TABLE DATA; Schema: videogames; Owner: postgres
 --
@@ -40020,7 +39802,7 @@ COPY videogames.platform (id, platform_name) FROM stdin;
 
 
 --
--- TOC entry 4912 (class 0 OID 16753)
+-- TOC entry 4902 (class 0 OID 16753)
 -- Dependencies: 222
 -- Data for Name: publisher; Type: TABLE DATA; Schema: videogames; Owner: postgres
 --
@@ -40608,7 +40390,7 @@ COPY videogames.publisher (id, publisher_name) FROM stdin;
 
 
 --
--- TOC entry 4914 (class 0 OID 16760)
+-- TOC entry 4904 (class 0 OID 16760)
 -- Dependencies: 224
 -- Data for Name: region; Type: TABLE DATA; Schema: videogames; Owner: postgres
 --
@@ -40622,7 +40404,7 @@ COPY videogames.region (id, region_name) FROM stdin;
 
 
 --
--- TOC entry 4923 (class 0 OID 16817)
+-- TOC entry 4913 (class 0 OID 16817)
 -- Dependencies: 233
 -- Data for Name: region_sales; Type: TABLE DATA; Schema: videogames; Owner: postgres
 --
@@ -89622,7 +89404,7 @@ COPY videogames.region_sales (region_id, game_platform_id, num_sales) FROM stdin
 
 
 --
--- TOC entry 4945 (class 0 OID 0)
+-- TOC entry 4919 (class 0 OID 0)
 -- Dependencies: 227
 -- Name: game_id_seq; Type: SEQUENCE SET; Schema: videogames; Owner: postgres
 --
@@ -89631,7 +89413,7 @@ SELECT pg_catalog.setval('videogames.game_id_seq', 1, true);
 
 
 --
--- TOC entry 4946 (class 0 OID 0)
+-- TOC entry 4920 (class 0 OID 0)
 -- Dependencies: 231
 -- Name: game_platform_id_seq; Type: SEQUENCE SET; Schema: videogames; Owner: postgres
 --
@@ -89640,7 +89422,7 @@ SELECT pg_catalog.setval('videogames.game_platform_id_seq', 1, false);
 
 
 --
--- TOC entry 4947 (class 0 OID 0)
+-- TOC entry 4921 (class 0 OID 0)
 -- Dependencies: 229
 -- Name: game_publisher_id_seq; Type: SEQUENCE SET; Schema: videogames; Owner: postgres
 --
@@ -89649,7 +89431,7 @@ SELECT pg_catalog.setval('videogames.game_publisher_id_seq', 1, false);
 
 
 --
--- TOC entry 4948 (class 0 OID 0)
+-- TOC entry 4922 (class 0 OID 0)
 -- Dependencies: 219
 -- Name: genre_id_seq; Type: SEQUENCE SET; Schema: videogames; Owner: postgres
 --
@@ -89658,7 +89440,7 @@ SELECT pg_catalog.setval('videogames.genre_id_seq', 1, false);
 
 
 --
--- TOC entry 4949 (class 0 OID 0)
+-- TOC entry 4923 (class 0 OID 0)
 -- Dependencies: 225
 -- Name: platform_id_seq; Type: SEQUENCE SET; Schema: videogames; Owner: postgres
 --
@@ -89667,7 +89449,7 @@ SELECT pg_catalog.setval('videogames.platform_id_seq', 1, false);
 
 
 --
--- TOC entry 4950 (class 0 OID 0)
+-- TOC entry 4924 (class 0 OID 0)
 -- Dependencies: 221
 -- Name: publisher_id_seq; Type: SEQUENCE SET; Schema: videogames; Owner: postgres
 --
@@ -89676,7 +89458,7 @@ SELECT pg_catalog.setval('videogames.publisher_id_seq', 1, false);
 
 
 --
--- TOC entry 4951 (class 0 OID 0)
+-- TOC entry 4925 (class 0 OID 0)
 -- Dependencies: 223
 -- Name: region_id_seq; Type: SEQUENCE SET; Schema: videogames; Owner: postgres
 --
@@ -89685,7 +89467,7 @@ SELECT pg_catalog.setval('videogames.region_id_seq', 1, false);
 
 
 --
--- TOC entry 4732 (class 2606 OID 16751)
+-- TOC entry 4722 (class 2606 OID 16751)
 -- Name: genre genre_pkey; Type: CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89694,7 +89476,7 @@ ALTER TABLE ONLY videogames.genre
 
 
 --
--- TOC entry 4740 (class 2606 OID 16779)
+-- TOC entry 4730 (class 2606 OID 16779)
 -- Name: game pk_game; Type: CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89703,7 +89485,7 @@ ALTER TABLE ONLY videogames.game
 
 
 --
--- TOC entry 4744 (class 2606 OID 16806)
+-- TOC entry 4734 (class 2606 OID 16806)
 -- Name: game_platform pk_gameplatform; Type: CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89712,7 +89494,7 @@ ALTER TABLE ONLY videogames.game_platform
 
 
 --
--- TOC entry 4742 (class 2606 OID 16790)
+-- TOC entry 4732 (class 2606 OID 16790)
 -- Name: game_publisher pk_gamepub; Type: CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89721,7 +89503,7 @@ ALTER TABLE ONLY videogames.game_publisher
 
 
 --
--- TOC entry 4738 (class 2606 OID 16772)
+-- TOC entry 4728 (class 2606 OID 16772)
 -- Name: platform platform_pkey; Type: CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89730,7 +89512,7 @@ ALTER TABLE ONLY videogames.platform
 
 
 --
--- TOC entry 4734 (class 2606 OID 16758)
+-- TOC entry 4724 (class 2606 OID 16758)
 -- Name: publisher publisher_pkey; Type: CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89739,7 +89521,7 @@ ALTER TABLE ONLY videogames.publisher
 
 
 --
--- TOC entry 4736 (class 2606 OID 16765)
+-- TOC entry 4726 (class 2606 OID 16765)
 -- Name: region region_pkey; Type: CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89748,7 +89530,7 @@ ALTER TABLE ONLY videogames.region
 
 
 --
--- TOC entry 4745 (class 2606 OID 16780)
+-- TOC entry 4735 (class 2606 OID 16780)
 -- Name: game fk_gm_gen; Type: FK CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89757,7 +89539,7 @@ ALTER TABLE ONLY videogames.game
 
 
 --
--- TOC entry 4748 (class 2606 OID 16807)
+-- TOC entry 4738 (class 2606 OID 16807)
 -- Name: game_platform fk_gpl_gp; Type: FK CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89766,7 +89548,7 @@ ALTER TABLE ONLY videogames.game_platform
 
 
 --
--- TOC entry 4749 (class 2606 OID 16812)
+-- TOC entry 4739 (class 2606 OID 16812)
 -- Name: game_platform fk_gpl_pla; Type: FK CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89775,7 +89557,7 @@ ALTER TABLE ONLY videogames.game_platform
 
 
 --
--- TOC entry 4746 (class 2606 OID 16791)
+-- TOC entry 4736 (class 2606 OID 16791)
 -- Name: game_publisher fk_gpu_gam; Type: FK CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89784,7 +89566,7 @@ ALTER TABLE ONLY videogames.game_publisher
 
 
 --
--- TOC entry 4747 (class 2606 OID 16796)
+-- TOC entry 4737 (class 2606 OID 16796)
 -- Name: game_publisher fk_gpu_pub; Type: FK CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89793,7 +89575,7 @@ ALTER TABLE ONLY videogames.game_publisher
 
 
 --
--- TOC entry 4750 (class 2606 OID 16821)
+-- TOC entry 4740 (class 2606 OID 16821)
 -- Name: region_sales fk_rs_gp; Type: FK CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89802,7 +89584,7 @@ ALTER TABLE ONLY videogames.region_sales
 
 
 --
--- TOC entry 4751 (class 2606 OID 16826)
+-- TOC entry 4741 (class 2606 OID 16826)
 -- Name: region_sales fk_rs_reg; Type: FK CONSTRAINT; Schema: videogames; Owner: postgres
 --
 
@@ -89810,192 +89592,7 @@ ALTER TABLE ONLY videogames.region_sales
     ADD CONSTRAINT fk_rs_reg FOREIGN KEY (region_id) REFERENCES videogames.region(id);
 
 
---
--- TOC entry 4929 (class 0 OID 0)
--- Dependencies: 6
--- Name: SCHEMA videogames; Type: ACL; Schema: -; Owner: postgres
---
-
-GRANT USAGE ON SCHEMA videogames TO user_veure_afegir;
-GRANT USAGE ON SCHEMA videogames TO user_genre;
-GRANT ALL ON SCHEMA videogames TO user_all;
-GRANT USAGE ON SCHEMA videogames TO user_platform_inventory;
-GRANT USAGE ON SCHEMA videogames TO user_selects_only;
-GRANT USAGE ON SCHEMA videogames TO user_select_insert;
-GRANT USAGE ON SCHEMA videogames TO user_region_sales;
-GRANT USAGE ON SCHEMA videogames TO user_esborrar;
-GRANT USAGE ON SCHEMA videogames TO user_games_publishers;
-
-
---
--- TOC entry 4930 (class 0 OID 0)
--- Dependencies: 228
--- Name: TABLE game; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.game TO user_all;
-GRANT SELECT ON TABLE videogames.game TO user_selects_only;
-GRANT SELECT,INSERT ON TABLE videogames.game TO user_select_insert;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.game TO user_esborrar;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.game TO user_games_publishers;
-
-
---
--- TOC entry 4931 (class 0 OID 0)
--- Dependencies: 232
--- Name: TABLE game_platform; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.game_platform TO user_all;
-GRANT SELECT ON TABLE videogames.game_platform TO user_selects_only;
-GRANT SELECT,INSERT ON TABLE videogames.game_platform TO user_select_insert;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.game_platform TO user_esborrar;
-
-
---
--- TOC entry 4932 (class 0 OID 0)
--- Dependencies: 230
--- Name: TABLE game_publisher; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.game_publisher TO user_all;
-GRANT SELECT ON TABLE videogames.game_publisher TO user_selects_only;
-GRANT SELECT,INSERT ON TABLE videogames.game_publisher TO user_select_insert;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.game_publisher TO user_esborrar;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.game_publisher TO user_games_publishers;
-
-
---
--- TOC entry 4933 (class 0 OID 0)
--- Dependencies: 220
--- Name: TABLE genre; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.genre TO user_genre;
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.genre TO user_all;
-GRANT SELECT ON TABLE videogames.genre TO user_selects_only;
-GRANT SELECT,INSERT ON TABLE videogames.genre TO user_select_insert;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.genre TO user_esborrar;
-
-
---
--- TOC entry 4934 (class 0 OID 0)
--- Dependencies: 226
--- Name: TABLE platform; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT SELECT,INSERT ON TABLE videogames.platform TO user_veure_afegir;
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.platform TO user_all;
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.platform TO user_platform_inventory;
-GRANT SELECT ON TABLE videogames.platform TO user_selects_only;
-GRANT SELECT,INSERT ON TABLE videogames.platform TO user_select_insert;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.platform TO user_esborrar;
-
-
---
--- TOC entry 4935 (class 0 OID 0)
--- Dependencies: 222
--- Name: TABLE publisher; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.publisher TO user_all;
-GRANT SELECT ON TABLE videogames.publisher TO user_selects_only;
-GRANT SELECT,INSERT ON TABLE videogames.publisher TO user_select_insert;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.publisher TO user_esborrar;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.publisher TO user_games_publishers;
-
-
---
--- TOC entry 4936 (class 0 OID 0)
--- Dependencies: 224
--- Name: TABLE region; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.region TO user_all;
-GRANT SELECT ON TABLE videogames.region TO user_selects_only;
-GRANT SELECT,INSERT ON TABLE videogames.region TO user_select_insert;
-GRANT SELECT,INSERT,UPDATE ON TABLE videogames.region TO user_region_sales;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.region TO user_esborrar;
-
-
---
--- TOC entry 4937 (class 0 OID 0)
--- Dependencies: 233
--- Name: TABLE region_sales; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT SELECT,INSERT ON TABLE videogames.region_sales TO user_veure_afegir;
-GRANT INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE videogames.region_sales TO user_all;
-GRANT SELECT ON TABLE videogames.region_sales TO user_selects_only;
-GRANT SELECT,INSERT ON TABLE videogames.region_sales TO user_select_insert;
-GRANT SELECT,INSERT,UPDATE ON TABLE videogames.region_sales TO user_region_sales;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE videogames.region_sales TO user_esborrar;
-
-
---
--- TOC entry 4938 (class 0 OID 0)
--- Dependencies: 227
--- Name: SEQUENCE game_id_seq; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT ALL ON SEQUENCE videogames.game_id_seq TO user_all;
-
-
---
--- TOC entry 4939 (class 0 OID 0)
--- Dependencies: 231
--- Name: SEQUENCE game_platform_id_seq; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT ALL ON SEQUENCE videogames.game_platform_id_seq TO user_all;
-
-
---
--- TOC entry 4940 (class 0 OID 0)
--- Dependencies: 229
--- Name: SEQUENCE game_publisher_id_seq; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT ALL ON SEQUENCE videogames.game_publisher_id_seq TO user_all;
-
-
---
--- TOC entry 4941 (class 0 OID 0)
--- Dependencies: 219
--- Name: SEQUENCE genre_id_seq; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT ALL ON SEQUENCE videogames.genre_id_seq TO user_all;
-
-
---
--- TOC entry 4942 (class 0 OID 0)
--- Dependencies: 225
--- Name: SEQUENCE platform_id_seq; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT ALL ON SEQUENCE videogames.platform_id_seq TO user_all;
-
-
---
--- TOC entry 4943 (class 0 OID 0)
--- Dependencies: 221
--- Name: SEQUENCE publisher_id_seq; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT ALL ON SEQUENCE videogames.publisher_id_seq TO user_all;
-
-
---
--- TOC entry 4944 (class 0 OID 0)
--- Dependencies: 223
--- Name: SEQUENCE region_id_seq; Type: ACL; Schema: videogames; Owner: postgres
---
-
-GRANT ALL ON SEQUENCE videogames.region_id_seq TO user_all;
-
-
--- Completed on 2025-01-24 19:03:25
+-- Completed on 2025-01-24 20:06:34
 
 --
 -- PostgreSQL database dump complete
